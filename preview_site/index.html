@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>书卡排版方案对比</title>
+<style>
+:root{--bg:#fafaf9;--card:#fff;--text:#292524;--muted:#78716c;--line:#e7e5e4;--accent:#6c9a8c}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);padding:18px 14px;line-height:1.6;max-width:520px;margin:0 auto}
+h1{font-size:19px;margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+.scheme{margin-bottom:30px}
+.scheme h2{font-size:15px;margin-bottom:4px}
+.scheme .desc{font-size:12px;color:var(--muted);margin-bottom:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cname{text-align:center;font-size:11px;color:var(--muted);margin-top:5px}
+
+/* ====== 当前线上版（问题版）====== */
+.old .cover{aspect-ratio:2/3;position:relative;display:flex;flex-direction:column;padding:13px 12px;background:#fcfbf9;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.old .cover::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--accent)}
+.old .ic{position:absolute;top:8px;right:9px;font-size:14px;opacity:.35}
+.old .ct{font-weight:700;font-size:13px;line-height:1.4;color:var(--text);margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.old .ca{font-size:10px;color:var(--muted);margin-top:auto;padding-top:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ====== 方案A：垂直居中紧凑（微信读书式）====== */
+.a .cover{aspect-ratio:2/3;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:14px 13px;background:#fcfbf9;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.a .cover::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--accent)}
+.a .ic{position:absolute;top:8px;right:9px;font-size:14px;opacity:.35}
+.a .ct{font-weight:700;font-size:13.5px;line-height:1.45;color:var(--text);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.a .dv{width:22px;height:1px;background:var(--line);margin:10px 0}
+.a .ca{font-size:10.5px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.a .badge{position:absolute;bottom:34px;right:-14px;background:#c2410c;color:#fff;font-size:12px;font-weight:700;padding:5px 20px 5px 14px;transform:skewX(-12deg);box-shadow:0 2px 5px rgba(0,0,0,.15);letter-spacing:1px}
+.a .badge span{display:inline-block;transform:skewX(12deg)}
+
+/* ====== 方案B：无封面平铺卡（豆瓣书单式）====== */
+.b .cardb{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 13px 12px;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:128px}
+.b .cardb::before{content:"";position:absolute;top:0;left:0;bottom:0;width:4px;background:var(--accent)}
+.b .top{display:flex;align-items:flex-start;gap:6px}
+.b .ct{font-weight:700;font-size:14px;line-height:1.4;color:var(--text);flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.b .ic{font-size:13px;opacity:.4;flex:0 0 auto}
+.b .ca{font-size:11px;color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.b .cp{font-size:10.5px;color:var(--muted);opacity:.8;margin-top:2px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.b .cbody-meta{margin-top:auto;padding-top:9px;display:flex;align-items:center;gap:6px}
+.b .tag{font-size:10px;background:#f5f5f4;border-radius:5px;padding:2px 7px;color:var(--muted)}
+.b .badge{display:inline-block;background:#c2410c;color:#fff;font-size:10px;font-weight:700;padding:2px 9px;border-radius:5px;letter-spacing:.5px;margin-left:auto}
+
+.verdict{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px;font-size:13px;margin-top:4px}
+.verdict b{color:#c2410c}
+</style>
+</head>
+<body>
+<h1>书卡排版 · 方案对比</h1>
+<div class="sub">针对：中间空旷、书卡狭长、长书名（尤其英文）被截断、长短书名字号不对称</div>
+
+<div class="scheme">
+  <h2>方案 A：文字垂直居中（微信读书书架式）</h2>
+  <div class="desc">书名+作者垂直居中聚拢，中间加一条细分隔线，填满中间空白；书名允许显示 5 行，英文长名能放下更多。</div>
+  <div class="row a">
+    <div>
+      <div class="cover">
+        <div class="ic">🧠</div>
+        <div class="ct">高效工作法：提升工作效率的黄金法则</div>
+        <div class="dv"></div>
+        <div class="ca">谢彦彬 著</div>
+      </div>
+      <div class="cname">中文长书名</div>
+    </div>
+    <div>
+      <div class="cover">
+        <div class="ic">🧠</div>
+        <div class="ct">工作狂是怎样休息的：das Ultimative Job-Workout für Körper, Kopf und Stimme</div>
+        <div class="dv"></div>
+        <div class="ca">(德)莉娜·维特本 等 著</div>
+      </div>
+      <div class="cname">中英混排超长名</div>
+    </div>
+    <div>
+      <div class="cover">
+        <div class="ic">📖</div>
+        <div class="ct">存在的勇气</div>
+        <div class="dv"></div>
+        <div class="ca">(美)保罗·蒂利希 著</div>
+      </div>
+      <div class="cname">短书名（居中不空）</div>
+    </div>
+    <div>
+      <div class="cover">
+        <div class="ic">📖</div>
+        <div class="ct">人间失格</div>
+        <div class="dv"></div>
+        <div class="ca">(日)太宰治 著</div>
+        <div class="badge"><span>已外借</span></div>
+      </div>
+      <div class="cname">短书名 + 外借标</div>
+    </div>
+  </div>
+</div>
+
+<div class="scheme">
+  <h2>方案 B：无封面平铺卡（豆瓣书单式）</h2>
+  <div class="desc">彻底去掉「假封面」，卡片高度由内容决定，书名/作者/出版社/索书号/外借标一行行排，信息密度高、绝不空旷；外借状态变正文小标签。</div>
+  <div class="row b">
+    <div>
+      <div class="cardb">
+        <div class="top"><div class="ct">高效工作法：提升工作效率的黄金法则</div><div class="ic">🧠</div></div>
+        <div class="ca">谢彦彬 著</div>
+        <div class="cp">中华工商联合出版社</div>
+        <div class="cbody-meta"><span class="tag">B026-49/76</span></div>
+      </div>
+      <div class="cname">中文长书名</div>
+    </div>
+    <div>
+      <div class="cardb">
+        <div class="top"><div class="ct">工作狂是怎样休息的：das Ultimative Job-Workout für Körper, Kopf und Stimme</div><div class="ic">🧠</div></div>
+        <div class="ca">(德)莉娜·维特本 等 著</div>
+        <div class="cp">中国友谊出版公司</div>
+        <div class="cbody-meta"><span class="tag">B026-49/78</span></div>
+      </div>
+      <div class="cname">中英混排超长名（完整显示）</div>
+    </div>
+    <div>
+      <div class="cardb">
+        <div class="top"><div class="ct">存在的勇气</div><div class="ic">📖</div></div>
+        <div class="ca">(美)保罗·蒂利希 著</div>
+        <div class="cp">上海译文出版社</div>
+        <div class="cbody-meta"><span class="tag">B086/41=2</span></div>
+      </div>
+      <div class="cname">短书名（卡片变矮）</div>
+    </div>
+    <div>
+      <div class="cardb">
+        <div class="top"><div class="ct">人间失格</div><div class="ic">📖</div></div>
+        <div class="ca">(日)太宰治 著</div>
+        <div class="cp">人民文学出版社</div>
+        <div class="cbody-meta"><span class="tag">I313.45/622=48</span><span class="badge">已外借</span></div>
+      </div>
+      <div class="cname">短书名 + 外借标</div>
+    </div>
+  </div>
+</div>
+
+<div class="scheme">
+  <h2>对比：当前线上版</h2>
+  <div class="desc">中间空旷、英文长名被截断（如右图）。</div>
+  <div class="row old">
+    <div>
+      <div class="cover">
+        <div class="ic">🧠</div>
+        <div class="ct">高效工作法：提升工作效率的黄金法则</div>
+        <div class="ca">谢彦彬 著</div>
+      </div>
+      <div class="cname">中文长书名</div>
+    </div>
+    <div>
+      <div class="cover">
+        <div class="ic">🧠</div>
+        <div class="ct">工作狂是怎样休息的：das Ultimative Job-Workout für Körper, Kopf und…</div>
+        <div class="ca">(德)莉娜·维特本 等 著</div>
+      </div>
+      <div class="cname">英文被截断 ↑</div>
+    </div>
+  </div>
+</div>
+
+<div class="verdict">
+  👉 回复 <b>A</b>（垂直居中）或 <b>B</b>（无封面平铺）。A 保留「书」的感觉、像书架；B 信息更全更紧凑、像豆瓣书单。
+</div>
+</body>
+</html>
