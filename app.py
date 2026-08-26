@@ -1,28 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-人保研修院借阅室 · 展示站 + 借出状态自助管理后台
+人保研修院借阅室 · 展示站 + 借出状态自助管理后台（安全加固版）
 
-- GET  /           展示站（单文件 index.html，启动时按 borrowed.json 构建）
-- GET  /admin      管理登录页 / 后台页（密码保护）
-- POST /admin      提交「已借出」清单（文本框或 TXT 文件），更新并重建站点
-- GET  /logout     退出登录
+- GET  /                展示站（单文件 index.html，启动时按 borrowed.json 构建）
+- GET  /<prefix>/admin  管理登录页 / 后台页（密码保护、CSRF、登录频率限制）
+- POST /<prefix>/admin  提交「已借出」清单（文本框或 TXT 文件），更新并重建站点
+- GET  /<prefix>/logout 退出登录
 
 借出状态唯一可变来源：borrowed.json（每行一个书名，或 JSON 数组）。
 配置环境变量：
-  ADMIN_PASSWORD  管理密码（必填，部署时设置）
-  SECRET_KEY      Flask 会话密钥（建议设置）
-  GITHUB_TOKEN    可选；设置后更新会自动 git 提交推送，使 Render 持久化重新部署
-  GITHUB_REPO     可选；格式 owner/name
-  GITHUB_BRANCH   可选；默认 main
-  PORT            可选；默认 3000
+  ADMIN_PASSWORD      管理密码（必填，部署时设置）
+  ADMIN_PATH_PREFIX   可选；后台路径前缀，例如 secret 则后台为 /secret/admin
+  SECRET_KEY          Flask 会话密钥（建议设置）
+  SESSION_COOKIE_SECURE 可选；在 Render（HTTPS）上建议设为 true
+  GITHUB_TOKEN      可选；设置后更新会自动 git 提交推送，使 Render 持久化重新部署
+  GITHUB_REPO       可选；格式 owner/name
+  GITHUB_BRANCH     可选；默认 main
+  PORT              可选；默认 3000
 """
-import os, json, subprocess
+import os, json, subprocess, time, hmac, secrets, logging
 from flask import (Flask, request, session, redirect, url_for,
-                   send_from_directory, render_template_string)
+                   send_from_directory, render_template_string, abort)
 from builder import render_index
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'change-me')
+ADMIN_PATH_PREFIX = (os.environ.get('ADMIN_PATH_PREFIX') or '').strip('/')
 TEMPLATE = os.path.join(HERE, 'template.html')
 BOOKS = os.path.join(HERE, 'books.json')
 BORROWED = os.path.join(HERE, 'borrowed.json')
@@ -30,6 +35,69 @@ INDEX = os.path.join(HERE, 'index.html')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'showcase-secret-change-me')
+app.config.update(
+    SESSION_COOKIE_SECURE=os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true',  # Render 可设 true（HTTPS）
+    SESSION_COOKIE_HTTPONLY=True,    # 禁止 JS 读取 session cookie
+    SESSION_COOKIE_SAMESITE='Lax',   # 防御 CSRF：第三方网站提交表单时不带 cookie
+)
+
+# 登录失败频率限制：同一 IP 5 次失败锁定 15 分钟
+MAX_FAILS = 5
+LOCKOUT_SECONDS = 15 * 60
+_FAILED_LOGINS = {}
+
+
+def _client_ip():
+    # Render 会通过 X-Forwarded-For 传真实客户端 IP
+    forwarded = request.headers.get('X-Forwarded-For', request.remote_addr or 'unknown')
+    return forwarded.split(',')[0].strip()
+
+
+def _check_rate_limit():
+    """返回锁定剩余秒数；0 表示未锁定。"""
+    ip = _client_ip()
+    now = time.time()
+    rec = _FAILED_LOGINS.get(ip)
+    if rec and rec['count'] >= MAX_FAILS:
+        elapsed = now - rec['last']
+        if elapsed < LOCKOUT_SECONDS:
+            return int(LOCKOUT_SECONDS - elapsed)
+        # 锁定期已过，清零
+        rec['count'] = 0
+    return 0
+
+
+def _record_login_fail():
+    ip = _client_ip()
+    now = time.time()
+    rec = _FAILED_LOGINS.get(ip)
+    if not rec or now - rec.get('last', 0) > LOCKOUT_SECONDS:
+        rec = {'count': 0, 'last': now}
+        _FAILED_LOGINS[ip] = rec
+    rec['count'] += 1
+    rec['last'] = now
+    logging.warning('admin login failed from %s (count=%d)', ip, rec['count'])
+
+
+def _csrf_token():
+    """生成或返回当前 session 的 CSRF token。"""
+    if 'csrf' not in session:
+        session['csrf'] = secrets.token_urlsafe(24)
+    return session['csrf']
+
+
+def _verify_csrf():
+    """校验 POST 请求中的 CSRF token。"""
+    token = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token')
+    if not token or not hmac.compare_digest(token, session.get('csrf', '')):
+        abort(403)
+
+
+def admin_path(rule):
+    """根据 ADMIN_PATH_PREFIX 生成后台路由路径。"""
+    if ADMIN_PATH_PREFIX:
+        return f'/{ADMIN_PATH_PREFIX}{rule}'
+    return rule
 
 
 def rebuild():
@@ -44,7 +112,7 @@ def try_git_push():
     repo = os.environ.get('GITHUB_REPO')
     branch = os.environ.get('GITHUB_BRANCH', 'main')
     if not (token and repo):
-        return '（未配置 GITHUB_TOKEN/GITHUB_REPO：更新仅保存在运行实例，重启可能丢失；建议配置以持久化）'
+        return '（未配置 GITHUB_TOKEN/GITHUB_REPO：更新仅保存在运行实例，Render 休眠/重启后可能丢失；建议配置以持久化）'
     try:
         r = subprocess.run(['git', '-C', HERE, 'status', '--porcelain'],
                            capture_output=True, text=True, check=True)
@@ -91,9 +159,10 @@ a{color:#92400e;font-size:14px}.ok{background:#f0fdf4;border:1px solid #86efac;c
 <div class="sub">粘贴「已借出」清单（每行一本书名），或上传 TXT。按书名匹配，清单几条标几本；同名多副本只标一本。</div>
 {% if count is defined %}<div class="ok">已更新：清单 {{count}} 条 → 标记 {{marked}} 本「已外借」。<span class="note">{{note}}</span></div>{% endif %}
 <form method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
 <textarea name="text" placeholder="例如：&#10;周易&#10;人间失格&#10;..."></textarea>
 <div class="hint">也可选择 TXT 文件上传：<input type="file" name="file" accept=".txt"></div>
-<div class="row"><button>保存并更新站点</button><a href="/">← 返回站点</a> <a href="/logout">退出</a></div>
+<div class="row"><button>保存并更新站点</button><a href="{{ url_for('index') }}">← 返回站点</a> <a href="{{ url_for('logout') }}">退出</a></div>
 </form></div></body></html>'''
 
 
@@ -102,17 +171,24 @@ def index():
     return send_from_directory(HERE, 'index.html')
 
 
-@app.route('/admin', methods=['GET', 'POST'])
+@app.route(admin_path('/admin'), methods=['GET', 'POST'])
 def admin():
+    lock_remaining = _check_rate_limit()
+    if lock_remaining:
+        return render_template_string(LOGIN, error=f'登录尝试过多，请 {lock_remaining} 秒后再试'), 429
+
     if not session.get('admin'):
         if request.method == 'POST' and request.form.get('pw'):
             if request.form.get('pw') == ADMIN_PASSWORD:
                 session['admin'] = True
+                session.pop('csrf', None)
                 return redirect(url_for('admin'))
+            _record_login_fail()
             return render_template_string(LOGIN, error='密码错误')
         return render_template_string(LOGIN)
 
     if request.method == 'POST':
+        _verify_csrf()
         text = request.form.get('text', '')
         f = request.files.get('file')
         if f and f.filename:
@@ -121,14 +197,15 @@ def admin():
         json.dump(titles, open(BORROWED, 'w', encoding='utf-8'), ensure_ascii=False)
         marked = rebuild()
         note = try_git_push()
-        return render_template_string(ADMIN, count=len(titles), marked=marked, note=note)
+        return render_template_string(ADMIN, count=len(titles), marked=marked, note=note, csrf=_csrf_token())
 
-    return render_template_string(ADMIN)
+    return render_template_string(ADMIN, csrf=_csrf_token())
 
 
-@app.route('/logout')
+@app.route(admin_path('/logout'))
 def logout():
     session.pop('admin', None)
+    session.pop('csrf', None)
     return redirect(url_for('admin'))
 
 

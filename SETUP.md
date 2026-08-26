@@ -6,7 +6,7 @@
 
 | 文件 | 作用 |
 |------|------|
-| `app.py` | Flask 主程序：展示站 + `/admin` 管理后台 |
+| `app.py` | Flask 主程序：展示站 + 管理后台（含 CSRF、登录频率限制、session 安全） |
 | `builder.py` | 合并构建：把 `books.json` + `borrowed.json` 内联进 `template.html` 生成 `index.html` |
 | `build.py` | 命令行构建（同 builder），用于本地/CI 生成静态页 |
 | `template.html` | 站点模板（搜索/分类/卡片/详情/深色模式等） |
@@ -25,8 +25,10 @@
 3. **新建 Web Service**：Dashboard → New → Web Service → 连接你的仓库 → 选中该仓库。
    Render 会自动读取 `render.yaml`。
 4. **设置环境变量**（在 Render 的 Environment 里）：
-   - `ADMIN_PASSWORD`：**管理密码，务必改成你自己的**（不设则默认 `change-me`，谁都能进后台）。
-   - `SECRET_KEY`：随便一长串随机字符（用于会话安全）。
+   - `ADMIN_PASSWORD`：**管理密码，务必改成你自己的强密码**（不设则默认 `change-me`，谁都能进后台）。建议 12 位以上，含大小写字母+数字。
+   - `SECRET_KEY`：随便一长串随机字符（用于会话签名，长度建议 ≥32）。
+   - `ADMIN_PATH_PREFIX`（可选）：后台路径前缀。例如填 `secret`，后台就变成 `https://你的链接/secret/admin`，更难被扫描到。不填就是 `/admin`。
+   - `SESSION_COOKIE_SECURE`：填 `true`（Render 默认 HTTPS，开启后 cookie 只通过 HTTPS 传输，更安全）。
    - `GITHUB_TOKEN`（**强烈建议配置**，否则更新不持久）：见下方说明。
    - `GITHUB_REPO`：你的 `owner/仓库名`，例如 `haonch/renbao-showcase`。
    - `GITHUB_BRANCH`：默认 `main`。
@@ -50,7 +52,11 @@
 
 ## 四、注意事项
 
-- **安全**：`ADMIN_PASSWORD` 一定要改掉默认；`/admin` 仅靠密码保护。若担心，可后续加 IP 白名单等。
+- **安全**：
+  - `ADMIN_PASSWORD` 一定要改掉默认，并设得够强。
+  - 后台已自带：① CSRF 防护（防止恶意网站替你提交表单）；② 登录频率限制（同一 IP 输错 5 次锁定 15 分钟，防暴力破解）；③ session cookie 仅 HTTPS + HttpOnly。
+  - 如想进一步降低被扫描风险，可配置 `ADMIN_PATH_PREFIX`（见上方），把 `/admin` 改成不公开的路径。
+  - 不要在任何公开地方贴出 `/admin` 链接或 `ADMIN_PASSWORD`。
 - **冷启动**：Render 免费实例一段时间无人访问会休眠，下次访问首次会慢几秒，正常现象。
 - **旧站**：之前 CloudStudio 那个静态站可保留作备份，或停用；以后以 Render 这个带后台的为准。
 - **本地预览/测试**：`ADMIN_PASSWORD=你的密码 PORT=5000 python app.py`，浏览器开 `http://127.0.0.1:5000`。
