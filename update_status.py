@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 
-# 未盘点（已外借）清单 第2轮_24册 —— 按书名匹配，每条只标 1 本
+# 未盘点（已借出）清单 第2轮_24册 —— 按书名匹配，每条只标 1 本
 borrowed_titles = [
     "周易",
     "中共党史简明读本",
@@ -54,15 +54,15 @@ for t in borrowed_titles:
     # 只标第一本（未标记的）
     target = None
     for m in matches:
-        if m['st'] != '已外借':
+        if m['st'] != '已借出':
             target = m
             break
     if target is None:
         target = matches[0]
-    target['st'] = '已外借'
+    target['st'] = '已借出'
     marked += 1
 
-print(f"按书名共标记 {marked} 本为「已外借」")
+print(f"按书名共标记 {marked} 本为「已借出」")
 if not_found:
     print(f"未找到 {len(not_found)} 本：")
     for t in not_found:

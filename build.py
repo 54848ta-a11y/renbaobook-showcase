@@ -13,4 +13,4 @@ out, marked = render_index(
 dst = os.path.join(HERE, 'index.html')
 with open(dst, 'w', encoding='utf-8') as f:
     f.write(out)
-print(f'已生成 {dst} ({os.path.getsize(dst)//1024} KB)，标记已外借 {marked} 本')
+print(f'已生成 {dst} ({os.path.getsize(dst)//1024} KB)，标记已借出 {marked} 本')

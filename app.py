@@ -157,7 +157,7 @@ a{color:#92400e;font-size:14px}.ok{background:#f0fdf4;border:1px solid #86efac;c
 .note{color:#78716c;font-size:12px;margin-top:8px;display:block}.hint{color:#78716c;font-size:12px;margin:10px 0 0}</style></head>
 <body><div class="wrap"><h1>借出状态管理</h1>
 <div class="sub">粘贴「已借出」清单（每行一本书名），或上传 TXT。按书名匹配，清单几条标几本；同名多副本只标一本。</div>
-{% if count is defined %}<div class="ok">已更新：清单 {{count}} 条 → 标记 {{marked}} 本「已外借」。<span class="note">{{note}}</span></div>{% endif %}
+{% if count is defined %}<div class="ok">已更新：清单 {{count}} 条 → 标记 {{marked}} 本「已借出」。<span class="note">{{note}}</span></div>{% endif %}
 <form method="post" enctype="multipart/form-data">
 <input type="hidden" name="csrf_token" value="{{ csrf }}">
 <textarea name="text" placeholder="例如：&#10;周易&#10;人间失格&#10;..."></textarea>

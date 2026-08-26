@@ -25,7 +25,7 @@ def extract_csrf(html):
 
 def count_borrowed():
     s = get('/')
-    return s.count('"st": "已外借"')
+    return s.count('"st": "已借出"')
 
 
 ok = True

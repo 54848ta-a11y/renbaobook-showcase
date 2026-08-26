@@ -190,13 +190,13 @@ const CLC = DATA.clc, BOOKS = DATA.books;
 const ALL_SHUFFLED = (function(){
   const a = BOOKS.slice();
   for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i];a[i]=a[j];a[j]=t; }
-  // 保证首页前 5 行至少有一本已外借：移动端 2 列→前 10 张即前 5 行；桌面列更多更靠上。
+  // 保证首页前 5 行至少有一本已借出：移动端 2 列→前 10 张即前 5 行；桌面列更多更靠上。
   // 仅借出 24/5002，纯随机几乎不会出现在首屏，故显式把一本借出书换入前 10 张随机位。
   const BLOCK = 10;
-  const hasBorrowedInBlock = a.slice(0, BLOCK).some(b => b.st==='已外借');
+  const hasBorrowedInBlock = a.slice(0, BLOCK).some(b => b.st==='已借出');
   if (!hasBorrowedInBlock){
     let idx = -1;
-    for (let i=BLOCK; i<a.length; i++){ if (a[i].st==='已外借'){ idx=i; break; } }
+    for (let i=BLOCK; i<a.length; i++){ if (a[i].st==='已借出'){ idx=i; break; } }
     if (idx !== -1){
       const pos = Math.floor(Math.random()*BLOCK);
       const t=a[pos]; a[pos]=a[idx]; a[idx]=t;
@@ -282,7 +282,7 @@ function card(b){
   return `<div class="card" data-id="${b.i}">
     <div class="cover" style="--accent:${accent}">
       <div class="spine"></div>
-      ${b.st==='已外借'?'<div class="borrowed"><span>已外借</span></div>':''}
+      ${b.st==='已借出'?'<div class="borrowed"><span>已借出</span></div>':''}
       <div class="ic">${iconOf(b.cat)}</div>
       <div class="ct">${esc(b.t)}</div>
       <div class="dv"></div>

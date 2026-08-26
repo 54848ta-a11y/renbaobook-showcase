@@ -34,7 +34,7 @@ setTimeout(() => {
   // 首页首屏应跨多个类目（不再是清一色哲学 B）
   const catSet = new Set([...cards].map(c => c.querySelector('.tag') ? c.querySelector('.tag').textContent.trim() : ''));
 
-  // 前 10 张（前 5 行，移动端 2 列）应至少有一本已外借
+  // 前 10 张（前 5 行，移动端 2 列）应至少有一本已借出
   const first10 = [...cards].slice(0, 10);
   const borrowedInFirst10 = first10.filter(c => c.querySelector('.borrowed')).length;
   const placeholder = doc.querySelector('#q') ? doc.querySelector('#q').getAttribute('placeholder') : '';
