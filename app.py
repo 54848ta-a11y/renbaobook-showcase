@@ -31,7 +31,7 @@ ADMIN_PATH_PREFIX = (os.environ.get('ADMIN_PATH_PREFIX') or '').strip('/')
 TEMPLATE = os.path.join(HERE, 'template.html')
 BOOKS = os.path.join(HERE, 'books.json')
 BORROWED = os.path.join(HERE, 'borrowed.json')
-INDEX = os.path.join(HERE, 'index.html')
+INDEX = os.path.join(HERE, 'public', 'index.html')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'showcase-secret-change-me')
@@ -120,7 +120,7 @@ def try_git_push():
             return '（无变动，无需提交）'
         subprocess.run(['git', '-C', HERE, 'config', 'user.email', 'bot@showcase'], check=False)
         subprocess.run(['git', '-C', HERE, 'config', 'user.name', 'showcase-bot'], check=False)
-        subprocess.run(['git', '-C', HERE, 'add', 'borrowed.json', 'index.html'], check=True)
+        subprocess.run(['git', '-C', HERE, 'add', 'borrowed.json', 'public/index.html'], check=True)
         subprocess.run(['git', '-C', HERE, 'commit', '-m', 'update borrowed status'], check=True)
         url = f'https://{token}@github.com/{repo}.git'
         subprocess.run(['git', '-C', HERE, 'push', url, branch], check=True)
@@ -196,7 +196,7 @@ function confirmResetAll(){return confirm('确定将所有图书标记为「已�
 
 @app.route('/')
 def index():
-    return send_from_directory(HERE, 'index.html')
+    return send_from_directory(os.path.join(HERE, 'public'), 'index.html')
 
 
 @app.route(admin_path('/admin'), methods=['GET', 'POST'])
