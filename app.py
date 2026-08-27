@@ -129,9 +129,23 @@ def try_git_push():
         return f'git 推送失败：{e}（更新已在当前实例生效，但未能持久化）'
 
 
-# 启动时构建一次
+def _index_is_fresh():
+    """检查 index.html 是否存在且比所有数据源/模板更新。"""
+    if not os.path.exists(INDEX):
+        return False
+    idx_mtime = os.path.getmtime(INDEX)
+    for p in (BOOKS, BORROWED, TEMPLATE, os.path.join(HERE, 'builder.py')):
+        if os.path.exists(p) and os.path.getmtime(p) > idx_mtime:
+            return False
+    return True
+
+
+# 启动时只在必要时重建，缩短 Render 唤醒时间
 try:
-    rebuild()
+    if not _index_is_fresh():
+        rebuild()
+    else:
+        print('index.html is fresh, skip initial rebuild')
 except Exception as e:
     print('initial build failed:', e)
 
