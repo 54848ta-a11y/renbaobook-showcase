@@ -2,3 +2,9 @@ __pycache__/
 *.pyc
 *.bak
 node_modules/
+
+# 本地数据/测试备份（勿提交）
+*.bak.json
+*.bak.html
+admin_reset_test.py
+.admin_test_cookie.txt

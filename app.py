@@ -154,15 +154,29 @@ h1{font-size:20px;margin:0 0 6px;color:#292524}.sub{color:#78716c;font-size:13px
 textarea{width:100%;height:220px;padding:12px;font-size:14px;border:1px solid #e7e5e4;border-radius:10px;box-sizing:border-box;resize:vertical;font-family:inherit;line-height:1.6}
 .row{display:flex;gap:12px;align-items:center;margin-top:12px}button{background:#92400e;color:#fff;border:0;border-radius:10px;padding:12px 20px;font-size:15px;cursor:pointer}
 a{color:#92400e;font-size:14px}.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534;border-radius:10px;padding:12px;font-size:14px;margin-bottom:14px}
-.note{color:#78716c;font-size:12px;margin-top:8px;display:block}.hint{color:#78716c;font-size:12px;margin:10px 0 0}</style></head>
+.note{color:#78716c;font-size:12px;margin-top:8px;display:block}.hint{color:#78716c;font-size:12px;margin:10px 0 0}
+.divider{height:1px;background:#e7e5e4;margin:22px 0 18px}
+.reset{background:#fff;color:#b91c1c;border:1px solid #fecaca}
+.reset:hover{background:#fef2f2}
+.warn{color:#b91c1c;font-size:12px;margin-top:8px;display:block}</style>
+<script>function confirmBlank(){var t=document.getElementById('txt');if(t&&t.value.trim()===''){return confirm('文本框为空，将清空所有借出标记（即全部图书标记为「在馆」）。确定继续吗？');}return true;}
+function confirmResetAll(){return confirm('确定将所有图书标记为「已还（在馆）」吗？此操作会清空当前的借出清单。');}</script></head>
 <body><div class="wrap"><h1>借出状态管理</h1>
 <div class="sub">粘贴「已借出」清单（每行一本书名），或上传 TXT。按书名匹配，清单几条标几本；同名多副本只标一本。</div>
-{% if count is defined %}<div class="ok">已更新：清单 {{count}} 条 → 标记 {{marked}} 本「已借出」。<span class="note">{{note}}</span></div>{% endif %}
-<form method="post" enctype="multipart/form-data">
+{% if reset_done %}<div class="ok">已全部重置为「在馆」。<span class="note">所有借出标记已清空。</span></div>
+{% elif count is defined %}<div class="ok">已更新：清单 {{count}} 条 → 标记 {{marked}} 本「已借出」。<span class="note">{{note}}</span></div>{% endif %}
+<form method="post" enctype="multipart/form-data" onsubmit="return confirmBlank()">
 <input type="hidden" name="csrf_token" value="{{ csrf }}">
-<textarea name="text" placeholder="例如：&#10;周易&#10;人间失格&#10;..."></textarea>
+<textarea id="txt" name="text" placeholder="例如：&#10;周易&#10;人间失格&#10;..."></textarea>
 <div class="hint">也可选择 TXT 文件上传：<input type="file" name="file" accept=".txt"></div>
 <div class="row"><button>保存并更新站点</button><a href="{{ url_for('index') }}">← 返回站点</a> <a href="{{ url_for('logout') }}">退出</a></div>
+</form>
+<div class="divider"></div>
+<form method="post" onsubmit="return confirmResetAll()">
+<input type="hidden" name="csrf_token" value="{{ csrf }}">
+<input type="hidden" name="action" value="reset_all">
+<button class="reset" type="submit">全部已还（清空借出）</button>
+<div class="warn">一键清空所有借出标记，让全部图书显示为「在馆」。谨慎使用。</div>
 </form></div></body></html>'''
 
 
@@ -189,6 +203,14 @@ def admin():
 
     if request.method == 'POST':
         _verify_csrf()
+        action = request.form.get('action', '')
+        if action == 'reset_all':
+            # 清空所有借出标记：borrowed.json 置空 → 重建后全部为「在馆」
+            json.dump([], open(BORROWED, 'w', encoding='utf-8'), ensure_ascii=False)
+            marked = rebuild()
+            note = try_git_push()
+            return render_template_string(ADMIN, count=0, marked=0, note=note,
+                                          csrf=_csrf_token(), reset_done=True)
         text = request.form.get('text', '')
         f = request.files.get('file')
         if f and f.filename:
